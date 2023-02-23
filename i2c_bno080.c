@@ -22,6 +22,9 @@
 #include <math.h>
 #include "getbno080.h"
 
+/* ------------------------------------------------------------ *
+ * global variables                                             *
+ * ------------------------------------------------------------ */
 // I2C file descriptor
 int i2cfd;
 // Each packet has a header of 4 bytes
