@@ -687,49 +687,37 @@ int get_serial(double *serial) {
  * SH-2 reference manual 6.5.8.2, format figure 72              *
  * ------------------------------------------------------------ */
 int get_acc(struct bnoacc *bnod_ptr) {
-   short count = 0;
    int datalen = 0;
    /* --------------------------------------------------------- *
     * Check if ACC is already enabled, if not enable it now...  *
     * --------------------------------------------------------- */
+   memset(shtpData, 0, MAX_PACKET_SIZE);
    shtpData[0] = SET_FEATURE_COMMAND;
-   shtpData[1] = 0x01;
-   shtpData[5] = 0x60;
-   shtpData[6] = 0xEA;
+   shtpData[1] = 0x01; // Accelerometer
+   shtpData[5] = 0x60; // Report interval LSB
+   shtpData[6] = 0xEA; // Report interval MSB = 0xea60 = 60000ms
    sendPacket(CHANNEL_CONTROL, 17); // Write 16 bytes to CTL channel
    usleep(200000);                   // wait 200 millisecs for completion
 
    datalen = receivePacket();
    usleep(I2CDELAY);
 
-   shtpData[0] = GET_FEATURE_REQUEST;
-   shtpData[1] = 0x01;
-   sendPacket(CHANNEL_CONTROL, 2); // Write 20 bytes to CTL channel
-   usleep(I2CDELAY);               // Delay 100 msecs before next I2C
-
-   count = 0;
-   datalen = 0;
+   // Let read until we get 1 packet to update the accelerometer data
    while ((datalen = receivePacket()) != 0) {
-      if(count > 3) break;
-      if(shtpHeader[2] == CHANNEL_CONTROL
-         && shtpData[0] == GET_FEATURE_RESPONSE) break;
-      usleep(I2CDELAY);             // Delay 100 msecs before next I2C
-      count++;
+      // Sensor data update!
+      if (shtpHeader[2] == CHANNEL_REPORTS && shtpData[0] == GET_TIME_REFERENCE) {
+         // Check if sensor update is for accelerometer
+         if (shtpData[5] == SENSOR_REPORTID_ACC) {
+            bnod_ptr->adata_x = (uint16_t)shtpData[5 + 5] << 8 | shtpData[5 + 4];
+            bnod_ptr->adata_y = (uint16_t)shtpData[5 + 7] << 8 | shtpData[5 + 6];
+            bnod_ptr->adata_z = (uint16_t)shtpData[5 + 9] << 8 | shtpData[5 + 8];
+            // We got a data! lets return
+            return 0;
+         }
+      }
    }
-
-   if(shtpData[0] != GET_FEATURE_RESPONSE || 
-      shtpData[1] != 0x01) {
-      printf("Error: Not getting SHTP feature report\n");
-      exit(-1);
-   }
-   if(verbose == 1) printf("Debug: FRS feature report received, [%d bytes]\n",
-                            datalen);
-   if(verbose == 1) printf("[%02X] [%02X] [%02X] [%02X]\n", shtpData[16],shtpData[17], shtpData[18],shtpData[19]);
-
-   if(shtpData[16] == 0x00) return(1);
-   usleep(200000);                   // wait 200 millisecs for completion
-   datalen = receivePacket();
-   return(0);
+   // If not more packets and none of them are accelerometer, exit with error
+   return 1;
 }
 
 
