@@ -51,10 +51,13 @@ uint8_t calibrationStatus; //Byte R0 of ME Calibration Response
 //These Q values are defined in the datasheet but can also be obtained by querying the meta data records
 //See the read metadata example for more info
 int16_t rotationVector_Q1;
-int16_t accelerometer_Q1;
-int16_t linear_accelerometer_Q1;
+int16_t accelerometer_Q1 = 8;
+int16_t linear_accelerometer_Q1 = 8;
 int16_t gyro_Q1;
 int16_t magnetometer_Q1;
+
+// Forward declarations
+float qToFloat(int16_t fixedPointValue, uint8_t qPoint);
 
 uint32_t readu32(uint8_t *p) {
    uint32_t retval = p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
@@ -708,9 +711,9 @@ int get_acc(struct bnoacc *bnod_ptr) {
       if (shtpHeader[2] == CHANNEL_REPORTS && shtpData[0] == GET_TIME_REFERENCE) {
          // Check if sensor update is for accelerometer
          if (shtpData[5] == SENSOR_REPORTID_ACC) {
-            bnod_ptr->adata_x = (uint16_t)shtpData[5 + 5] << 8 | shtpData[5 + 4];
-            bnod_ptr->adata_y = (uint16_t)shtpData[5 + 7] << 8 | shtpData[5 + 6];
-            bnod_ptr->adata_z = (uint16_t)shtpData[5 + 9] << 8 | shtpData[5 + 8];
+            bnod_ptr->adata_x = qToFloat((uint16_t)shtpData[5 + 5] << 8 | shtpData[5 + 4], accelerometer_Q1);
+            bnod_ptr->adata_y = qToFloat((uint16_t)shtpData[5 + 7] << 8 | shtpData[5 + 6], accelerometer_Q1);
+            bnod_ptr->adata_z = qToFloat((uint16_t)shtpData[5 + 9] << 8 | shtpData[5 + 8], accelerometer_Q1);
             // We got a data! lets return
             return 0;
          }
