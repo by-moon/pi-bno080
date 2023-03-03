@@ -160,8 +160,8 @@ int receivePacket(void) {
    if(verbose == 1) printf("Debug: RX %3d bytes HEAD", packetlen);
    for (int i = 0; i < packetlen; i++) {
       if(verbose == 1 && i == 4) printf(" CARGO");
-      if(verbose == 1 && i < 20) printf(" %02X", data[i]); // only first 20 bytes
-      if(verbose == 1 && i > 19 && i == 20) printf(" +%d more bytes", (packetlen-16));
+      if(verbose == 1) printf(" %02X", data[i]); // only first 20 bytes
+      // if(verbose == 1 && i > 19 && i == 20) printf(" +%d more bytes", (packetlen-16));
       if(i < 4) shtpHeader[i] = data[i]; // Store data into the shtpData array
       if(i > 3) shtpData[i-4] = data[i]; // Store data into the shtpData array
    }
